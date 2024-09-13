@@ -13,5 +13,6 @@ export default function OrdersTabs() {
         <TopTabs.Screen name="index" options={{ title: 'Active' }} />
       </TopTabs>
     </SafeAreaView>
+    
   );
 }

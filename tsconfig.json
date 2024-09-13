@@ -7,7 +7,8 @@
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],
       "@constants/*": ["src/constants/*"],
-      "@assets/*": ["assets/*"]
+      "@assets/*": ["assets/*"],
+      // "@supabase/*": ["assets/*"]
     }
   },
   "include": [
