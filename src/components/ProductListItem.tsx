@@ -1,8 +1,7 @@
 import Colors from 'src/constants/Colors';
-import { StyleSheet, Text, View, Image, Pressable } from 'react-native';
+import { StyleSheet, Text,  Image, Pressable } from 'react-native';
 import { Product } from '../types';
 import { Link, useSegments } from 'expo-router';
-import ProductDetailsScreen from '@/app/(user)/menu/[id]';
 
 export const defaultPizzaImage= 'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/food/default.png';
 type ProductListItemProps ={

@@ -46,9 +46,9 @@ const CartProvider = ({ children }: PropsWithChildren ) => {
             items.map(item => item.id !== itemId? item: {...item, quantity: item.quantity+ amount}
             ).filter((item) => item.quantity>0)
          );
-        // setItems(updatedItems);
+        
        };
-     console.log(items);
+     
        const total = items.reduce((sum, item) => 
         (sum+=item.product.price * item.quantity), 0
     );

@@ -1,10 +1,11 @@
 import Button from "@/components/Button";
 import { defaultPizzaImage } from "@/components/ProductListItem";
 import Colors from "@/constants/Colors";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Image, Alert } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useInsertProduct, useProduct, useUpdateProduct } from "@/app/api/products";
 
 const CreateProductScreen = () => {
 const [name,setName]= useState('');
@@ -12,8 +13,27 @@ const [price, setPrice]= useState('');
 const [errors, setErrors]= useState('');
 const [image, setImage] = useState<string | null>(null);
 
-const { id } =useLocalSearchParams();
+const { id: idString } = useLocalSearchParams();
+const id = parseFloat(typeof idString === 'string' ? idString : idString[0]);
+const { data: updatedProduct, isLoading } = useProduct(id);
+
+//const { id } =useLocalSearchParams();
 const isUpdating = !!id;
+const { mutate: insertProduct } = useInsertProduct();
+const { mutate: updateProduct } = useUpdateProduct();
+const {data: updatingProduct} = useProduct(id);
+
+
+const router = useRouter();
+
+useEffect (() => {
+    if(updatingProduct)
+    {
+        setName(updatingProduct.name);
+        setPrice(updatingProduct.price.toString());
+        setImage(updatingProduct.image);
+    }
+},[updatingProduct]);
 
 const resetFields = () => {
     setName('');
@@ -50,10 +70,14 @@ const onCreate = () =>{
     {
         return;
     }
-    console.warn('Create product');
-
+    //console.warn('Create product');
     // save in the database
-    resetFields();
+    insertProduct({ name, price: parseFloat(price), image},{
+         onSuccess: ()=>{
+            resetFields();
+            router.back();
+         }
+    });
 };
 
 const onUpdate = () =>{
@@ -61,10 +85,18 @@ const onUpdate = () =>{
     {
         return;
     }
-    console.warn('Update product');
-
+   // console.warn('Update product');
+    updateProduct(
+        { id, name, price: parseFloat(price), image },
+        {
+          onSuccess: () => {
+            resetFields();
+            router.back();
+          },
+        }
+      );
     // save in the database
-    resetFields();
+   // resetFields();
 };
 const pickImage = async () => {
     // No permissions request is necessary for launching the image library
