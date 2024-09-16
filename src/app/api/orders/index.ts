@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { InsertTables, Order, Tables } from '@/types';
+import { InsertTables, UpdateTables } from '@/types';
 
 
 
@@ -13,7 +13,8 @@ export const useAdminOrdersList = ({ archived = false }: { archived: boolean }) 
       const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .in('status',statuses);
+      .in('status',statuses)
+      .order('created_at',{ascending:false});
       if (error) {
         throw new Error(error.message);
       }
@@ -31,7 +32,7 @@ export const useUsersOrdersList = () => {
       queryFn: async () => {
         if(!id) return null;
 
-        const { data, error } = await supabase.from('orders').select('*').eq('user_id',id);
+        const { data, error } = await supabase.from('orders').select('*').eq('user_id',id).order('created_at',{ascending:false});
         if (error) {
           throw new Error(error.message);
         }
@@ -46,7 +47,7 @@ export const useUsersOrdersList = () => {
       queryFn: async () => {
         const { data, error } = await supabase
           .from('orders')
-          .select('*')
+          .select('*, order_items(*, products(*))')
           .eq('id', id)
           .single();
         if (error) {
@@ -74,8 +75,41 @@ export const useInsertOrder = () => {
       }
       return newOrder;
     },
-    async onSuccess() {
+    async onSuccess(data) {
       await queryClient.invalidateQueries(['orders']);
+    },
+    // onError(error) {
+    //   console.log(error);
+    // },
+  });
+};
+
+
+export const useUpdateOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    async mutationFn({
+      id,
+      updateField,
+    }:{
+      id:number,
+      updateField:UpdateTables<'orders'>,
+    }) {
+      const { error, data: updateOrder } = await supabase
+      .from('orders')
+      .update(updateField)
+      .eq('id',id)
+      .select()
+      .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      return updateOrder;
+    },
+    async onSuccess(_, {id}) {
+      await queryClient.invalidateQueries(['orders']);
+      await queryClient.invalidateQueries(['orders', id]);
     },
     // onError(error) {
     //   console.log(error);

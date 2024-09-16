@@ -60,6 +60,7 @@ export const useInsertProduct = () => {
 };
 
 
+
 export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
 
