@@ -46,6 +46,7 @@ const SignInScreen = () => {
       onPress={signInWithEmail} 
       disabled={loading}  
       text={loading ? 'Signin in...': 'Sign in'}
+      
       />
       <Link href="/sign-up" style={styles.textButton}>
         Create an account

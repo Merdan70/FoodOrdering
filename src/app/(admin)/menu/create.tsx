@@ -6,15 +6,22 @@ import { View, Text, StyleSheet, TextInput, Image, Alert } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useDeleteProdect, useInsertProduct, useProduct, useUpdateProduct } from "@/app/api/products";
+import * as FileSystem from 'expo-file-system';
+import { supabase } from "@/lib/supabase";
+import { randomUUID } from "expo-crypto";
+import { decode } from "base64-arraybuffer";
+import RemoteImage from "@/components/RemoteImage";
+
 
 const CreateProductScreen = () => {
 const [name,setName]= useState('');
 const [price, setPrice]= useState('');
 const [errors, setErrors]= useState('');
 const [image, setImage] = useState<string | null>(null);
-
+const [uploadFlag, setUploasFlag] = useState(0);
+const [isuploadFlag, setIsUploasFlag] = useState(false);
 const { id: idString } = useLocalSearchParams();
-const id = parseFloat(typeof idString === 'string' ? idString : idString[0]);
+const id = parseFloat(typeof idString == 'string' ? idString : idString?.[0]);
 const { data: updatedProduct, isLoading } = useProduct(id);
 
 //const { id } =useLocalSearchParams();
@@ -35,9 +42,11 @@ useEffect (() => {
     }
 },[updatingProduct]);
 
+
 const resetFields = () => {
     setName('');
     setPrice('');
+    setImage('');
 };
 const validateInput = () => {
     setErrors('');
@@ -65,14 +74,16 @@ const onSubmit = () => {
         onCreate();
     }
 };
-const onCreate = () =>{
+const onCreate = async () =>{
     if(!validateInput())
     {
         return;
     }
     //console.warn('Create product');
     // save in the database
-    insertProduct({ name, price: parseFloat(price), image},{
+    const imagePath=await uploadImage();
+    //console.log('1111 '+imagePath);
+    insertProduct({ name, price: parseFloat(price), image: imagePath },{
          onSuccess: ()=>{
             resetFields();
             router.back();
@@ -82,16 +93,21 @@ const onCreate = () =>{
 
 
 
-const onUpdate = () =>{
+const onUpdate = async () =>{
     if(!validateInput())
     {
         return;
     }
-   // console.warn('Update product');
+    const imagePath= await uploadImage();
+    
+    console.warn('Update product');
     updateProduct(
-        { id, name, price: parseFloat(price), image },
+        
+        { id, name, price: parseFloat(price), image: imagePath },
         {
           onSuccess: () => {
+           // setImage(imagePath);
+          //  console.log('Update is success');
             resetFields();
             router.back();
           },
@@ -113,6 +129,7 @@ const pickImage = async () => {
     }
   };
 
+
   const onDelete = () => {
    deleteProduct(id, {
     onSuccess: () => {
@@ -122,7 +139,26 @@ const pickImage = async () => {
       },
    });
   };
-
+// 
+  const uploadImage = async () => {
+    if (!image?.startsWith('file://')) {
+      return;
+    }
+    setIsUploasFlag(true);
+    setUploasFlag(1);
+    const base64 = await FileSystem.readAsStringAsync(image, {
+      encoding: 'base64',
+    });
+    const filePath = `${randomUUID()}.png`;
+    const contentType = 'image/png';
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, decode(base64), { contentType });
+      setIsUploasFlag(false);
+    if (data) {
+        return data.path;
+    }
+  };
   const confirmDelete = () => {
     Alert.alert('Confirm', 'Are you sure you want to delete this product?', [
         {
@@ -135,12 +171,18 @@ const pickImage = async () => {
         }
     ]);
   };
-
+console.log(image);
     return (
         <View style={styles.container}>
 <Stack.Screen options={{title: isUpdating ? 'Update Product' : 'Create Product'}} />
-
-            <Image source={{uri: image || defaultPizzaImage}} style={styles.image} />
+        { uploadFlag ? (<Image source={{uri: image || defaultPizzaImage}} style={styles.image}  />):(
+            
+             <RemoteImage 
+            path = {image}
+            fallback={defaultPizzaImage}
+            style={styles.image}
+            /> )}
+             
             <Text onPress={pickImage} style={styles.textButton}>Select Image</Text>
 
             <Text style={styles.label}>create</Text>
@@ -159,9 +201,9 @@ const pickImage = async () => {
             keyboardType="numeric"
             />
             <Text style={{color: 'red'}} >{errors}</Text>
-            <Button onPress={onSubmit} text={isUpdating ? 'Update':'Create'} />
+            <Button onPress={onSubmit} disabled={isuploadFlag} text={isUpdating ? 'Update':'Create'} />
             {isUpdating && (
-                <Text onPress={confirmDelete} style={styles.textButton}>
+                <Text onPress={confirmDelete} disabled={isuploadFlag} style={styles.textButton}>
                     Delete
                 </Text>
             )}
